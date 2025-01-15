@@ -22,6 +22,7 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
@@ -74,21 +75,27 @@ public class ModClientForge {
 
             BlockState state = Block.byItem(stack.getItem()).defaultBlockState();
 
-            int packedLight = player.level().getBrightness(LightLayer.BLOCK, player.blockPosition().above());
-
             poseStack.mulPose(Axis.YP.rotationDegrees(playerDuck.getRotation().getDegrees()));
             poseStack.translate(-0.5, 0, -0.5);
 
-            BlockRenderDispatcher blockRenderer = Minecraft.getInstance().getBlockRenderer();
-            MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
-            VertexConsumer buffer = bufferSource.getBuffer(RenderType.translucent());
+            if (state.getBlock() instanceof EntityBlock) {
+                poseStack.scale(2.0F, 2.0F, 2.0F);
+                poseStack.translate(0.25, 0.25, 0.25);
+                Minecraft.getInstance().getItemRenderer().renderStatic(stack, ItemDisplayContext.FIXED,
+                        LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, poseStack,
+                        Minecraft.getInstance().renderBuffers().bufferSource(), player.level(), 0);
+            } else {
+                BlockRenderDispatcher blockRenderer = Minecraft.getInstance().getBlockRenderer();
+                MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
+                RenderType renderType = ItemBlockRenderTypes.getChunkRenderType(state);
+                VertexConsumer buffer = bufferSource.getBuffer(renderType);
 
-            BakedModel model = blockRenderer.getBlockModel(state);
-            blockRenderer.renderBatched(state, player.blockPosition(), player.level(),
-                    poseStack, buffer, false, RandomSource.create(),
-                    ModelData.EMPTY, RenderType.translucent());
+                blockRenderer.renderBatched(state, player.blockPosition(), player.level(),
+                        poseStack, buffer, false, RandomSource.create(),
+                        ModelData.EMPTY, renderType);
+            }
 
-            bufferSource.endBatch(RenderType.translucent());
+            Minecraft.getInstance().renderBuffers().bufferSource().endBatch();
             poseStack.popPose();
             event.setCanceled(true);
         }
