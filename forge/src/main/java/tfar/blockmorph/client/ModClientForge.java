@@ -1,15 +1,18 @@
 package tfar.blockmorph.client;
 
+import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.LightTexture;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
@@ -17,6 +20,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
@@ -70,21 +74,21 @@ public class ModClientForge {
 
             BlockState state = Block.byItem(stack.getItem()).defaultBlockState();
 
-            int packedLight = player.level().getLightEmission(player.blockPosition().above());
+            int packedLight = player.level().getBrightness(LightLayer.BLOCK, player.blockPosition().above());
 
             poseStack.mulPose(Axis.YP.rotationDegrees(playerDuck.getRotation().getDegrees()));
             poseStack.translate(-0.5, 0, -0.5);
 
             BlockRenderDispatcher blockRenderer = Minecraft.getInstance().getBlockRenderer();
             MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
-            VertexConsumer buffer = bufferSource.getBuffer(RenderType.solid());
+            VertexConsumer buffer = bufferSource.getBuffer(RenderType.translucent());
 
             BakedModel model = blockRenderer.getBlockModel(state);
-            blockRenderer.getModelRenderer().renderModel(poseStack.last(),
-                    buffer, state, model, 1.0F, 1.0F, 1.0F, packedLight,
-                    OverlayTexture.NO_OVERLAY, ModelData.EMPTY, RenderType.solid());
+            blockRenderer.renderBatched(state, player.blockPosition(), player.level(),
+                    poseStack, buffer, false, RandomSource.create(),
+                    ModelData.EMPTY, RenderType.translucent());
 
-            bufferSource.endBatch(RenderType.solid());
+            bufferSource.endBatch(RenderType.translucent());
             poseStack.popPose();
             event.setCanceled(true);
         }
