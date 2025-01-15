@@ -68,22 +68,23 @@ public class ModClientForge {
             PoseStack poseStack = event.getPoseStack();
             poseStack.pushPose();
 
-            //poseStack.translate(0, 0, 0);
+            BlockState state = Block.byItem(stack.getItem()).defaultBlockState();
+
+            int packedLight = player.level().getLightEmission(player.blockPosition().above());
+
             poseStack.mulPose(Axis.YP.rotationDegrees(playerDuck.getRotation().getDegrees()));
             poseStack.translate(-0.5, 0, -0.5);
 
-            BlockState state = Block.byItem(stack.getItem()).defaultBlockState();
             BlockRenderDispatcher blockRenderer = Minecraft.getInstance().getBlockRenderer();
-            BakedModel model = blockRenderer.getBlockModel(state);
             MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
-            VertexConsumer buffer = bufferSource.getBuffer(RenderType.translucent());
+            VertexConsumer buffer = bufferSource.getBuffer(RenderType.solid());
 
+            BakedModel model = blockRenderer.getBlockModel(state);
+            blockRenderer.getModelRenderer().renderModel(poseStack.last(),
+                    buffer, state, model, 1.0F, 1.0F, 1.0F, packedLight,
+                    OverlayTexture.NO_OVERLAY, ModelData.EMPTY, RenderType.solid());
 
-            blockRenderer.renderBatched(state, player.blockPosition(), player.level(),
-                    poseStack, buffer, false, RandomSource.create(),
-                    ModelData.EMPTY, RenderType.translucent());
-
-            bufferSource.endBatch(RenderType.translucent());
+            bufferSource.endBatch(RenderType.solid());
             poseStack.popPose();
             event.setCanceled(true);
         }
