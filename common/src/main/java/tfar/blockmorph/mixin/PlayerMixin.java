@@ -1,12 +1,20 @@
 package tfar.blockmorph.mixin;
 
-
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import tfar.blockmorph.BlockRotation;
 import tfar.blockmorph.PlayerDuck;
 import tfar.blockmorph.network.client.S2CDirectionPacket;
@@ -70,6 +78,22 @@ public class PlayerMixin implements PlayerDuck {
                 Services.PLATFORM.sendToTracking(player, new S2CRotationPacket(player.getUUID(), rotation));
             }
             this.rotation = rotation;
+        }
+    }
+
+    @Inject(method = "getDimensions", at = @At("HEAD"), cancellable = true)
+    @Unique
+    private void blockmorph$getDimensions(Pose pose, CallbackInfoReturnable<EntityDimensions> cir) {
+        if (morphed) {
+            cir.setReturnValue(EntityDimensions.scalable(1f, 1f));
+        }
+    }
+
+    @Inject(method = "setItemSlot", at = @At("TAIL"))
+    @Unique
+    private void blockmorph$onItemSlotChange(EquipmentSlot slot, ItemStack stack, CallbackInfo ci) {
+        if (slot == EquipmentSlot.HEAD && stack.isEmpty() && morphed) {
+            setMorphed(false);
         }
     }
 }
